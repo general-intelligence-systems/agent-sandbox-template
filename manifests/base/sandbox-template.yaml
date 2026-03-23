@@ -24,6 +24,17 @@ spec:
               port: 8080
             initialDelaySeconds: 5
             periodSeconds: 10
+          volumeMounts:
+            - name: config
+              mountPath: /etc/agent/config.yaml
+              subPath: config.yaml
+              readOnly: true
+            - name: secrets
+              mountPath: /etc/agent/secrets
+              readOnly: true
+            - name: scripts
+              mountPath: /etc/agent/scripts
+              readOnly: true
           resources:
             requests:
               cpu: "250m"
@@ -31,4 +42,15 @@ spec:
             limits:
               cpu: "1"
               memory: "1Gi"
+      volumes:
+        - name: config
+          configMap:
+            name: agent-config
+        - name: secrets
+          secret:
+            secretName: agent-secrets
+        - name: scripts
+          configMap:
+            name: agent-scripts
+            defaultMode: 0755
   networkPolicyManagement: Managed

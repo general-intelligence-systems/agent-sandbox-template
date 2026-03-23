@@ -38,6 +38,11 @@ kubectl -n agent-sandbox-system wait --for=condition=Available deployment --all 
 
 # -- Apply project manifests ------------------------------------------
 
+echo "Applying agent ConfigMaps and Secrets..."
+kubectl apply -f "${REPO_ROOT}/manifests/base/agent-config.yaml"
+kubectl apply -f "${REPO_ROOT}/manifests/base/agent-secrets.yaml"
+kubectl apply -f "${REPO_ROOT}/manifests/base/agent-scripts.yaml"
+
 echo "Applying SandboxTemplate..."
 kubectl apply -f "${REPO_ROOT}/manifests/base/sandbox-template.yaml"
 
