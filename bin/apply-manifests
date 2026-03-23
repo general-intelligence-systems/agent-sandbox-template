@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
+VERSION="${AGENT_SANDBOX_VERSION:-v0.2.1}"
+BASE_URL="https://github.com/kubernetes-sigs/agent-sandbox/releases/download/${VERSION}"
+
+echo "Installing agent-sandbox ${VERSION} core components..."
+kubectl apply -f "${BASE_URL}/manifest.yaml"
+
+echo "Installing agent-sandbox ${VERSION} extensions..."
+kubectl apply -f "${BASE_URL}/extensions.yaml"
+
+echo "Waiting for CRDs to be established..."
+kubectl wait --for=condition=Established crds \
+  sandboxes.agents.x-k8s.io \
+  sandboxtemplates.agents.x-k8s.io \
+  sandboxclaims.agents.x-k8s.io \
+  sandboxwarmpools.agents.x-k8s.io \
+  --timeout=60s
+
+echo "Waiting for agent-sandbox controllers to be ready..."
+kubectl -n agent-sandbox-system wait --for=condition=Available deployment --all --timeout=120s
+
+echo "Applying base SandboxTemplate..."
+kubectl apply -f "${REPO_ROOT}/manifests/base/sandbox-template.yaml"
+
+echo "Applying base SandboxWarmPool..."
+kubectl apply -f "${REPO_ROOT}/manifests/base/sandbox-warm-pool.yaml"
+
+echo "Manifests applied successfully."
+echo "Warm pool is provisioning -- use 'kubectl get swp' to check readiness."

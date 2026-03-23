@@ -1,0 +1,10 @@
+apiVersion: agents.x-k8s.io/v1alpha1
+kind: SandboxClaim
+metadata:
+  name: my-coding-agent
+spec:
+  sandboxTemplateRef:
+    name: langchain-coding-agent
+  lifecycle:
+    shutdownTime: "2026-12-31T23:59:59Z"
+    shutdownPolicy: Delete

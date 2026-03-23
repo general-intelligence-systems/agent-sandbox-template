@@ -1,0 +1,19 @@
+apiVersion: agents.x-k8s.io/v1alpha1
+kind: SandboxTemplate
+metadata:
+  name: default
+spec:
+  podTemplate:
+    spec:
+      containers:
+        - name: sandbox
+          image: ubuntu:24.04
+          command: ["sleep", "infinity"]
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "512Mi"
+            limits:
+              cpu: "1"
+              memory: "1Gi"
+  networkPolicyManagement: Managed

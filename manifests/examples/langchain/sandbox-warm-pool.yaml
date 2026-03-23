@@ -1,0 +1,8 @@
+apiVersion: agents.x-k8s.io/v1alpha1
+kind: SandboxWarmPool
+metadata:
+  name: langchain-coding-agent-pool
+spec:
+  replicas: 2
+  sandboxTemplateRef:
+    name: langchain-coding-agent
