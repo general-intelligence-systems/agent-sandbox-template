@@ -20,6 +20,12 @@ def run(request):
 
 To update without rebuilding: `kubectl apply -f manifests/agent.yaml`
 
+## Test
+
+```bash
+bin/test
+```
+
 ## Deploy
 
 ```bash
@@ -32,10 +38,4 @@ docker push your-registry/agent-sandbox:latest
 
 # Update the image reference in manifests/sandbox-template.yaml, then:
 kubectl apply -f manifests/
-```
-
-## Test
-
-```bash
-bin/test
 ```
