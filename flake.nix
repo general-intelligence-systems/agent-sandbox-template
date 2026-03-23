@@ -48,6 +48,43 @@
               cp -r $src/* $out/
             '';
           };
+
+          # -- Examples -----------------------------------------------------
+
+          # LangChain coding agent image (impure).
+          #
+          #   nix build .#examples-langchain-image --impure
+          #   docker load < result
+          #
+          examples-langchain-image = pkgs.runCommand "langchain-coding-agent-image" {
+            __impure = true;
+            nativeBuildInputs = [ pkgs.docker ];
+            src = self;
+          } ''
+            cd $src
+            docker build -t langchain-coding-agent:local \
+              -f examples/langchain/Dockerfile examples/langchain/
+            docker build -t langchain-model-downloader:local \
+              -f examples/langchain/Dockerfile.init examples/langchain/
+            docker save langchain-coding-agent:local \
+              langchain-model-downloader:local -o $out
+          '';
+
+          # LangChain manifests.
+          #
+          #   nix build .#examples-langchain-manifests
+          #   ls result/
+          #
+          examples-langchain-manifests = pkgs.stdenvNoCC.mkDerivation {
+            pname = "langchain-example-manifests";
+            version = "0.1.0";
+            src = ./examples/langchain/manifests;
+            phases = [ "installPhase" ];
+            installPhase = ''
+              mkdir -p $out
+              cp -r $src/* $out/
+            '';
+          };
         }
       );
 

@@ -124,8 +124,10 @@ kubectl get pods -w          # watch pods
 
 | Output | Description |
 |---|---|
-| `packages.<system>.image` | Agent Docker image, impure (`nix build .#image --impure && docker load < result`) |
-| `packages.<system>.manifests` | K8s manifests in the Nix store (`nix build .#manifests`) |
+| `packages.<system>.image` | Agent Docker image, impure (`nix build .#image --impure`) |
+| `packages.<system>.manifests` | Base k8s manifests (`nix build .#manifests`) |
+| `packages.<system>.examples-langchain-image` | LangChain agent + init images, impure (`nix build .#examples-langchain-image --impure`) |
+| `packages.<system>.examples-langchain-manifests` | LangChain k8s manifests (`nix build .#examples-langchain-manifests`) |
 | `devShells.<system>.default` | Shell with kubectl, k3d, k9s, python3 |
 
 ## Cleanup
