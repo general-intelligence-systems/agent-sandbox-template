@@ -2,44 +2,6 @@
 
 A project template for building AI agents on [Kubernetes Agent Sandbox](https://github.com/kubernetes-sigs/agent-sandbox), using the extensions API (SandboxTemplate, SandboxWarmPool, SandboxClaim) and k3d for local development.
 
-## Project Structure
-
-```
-agent-sandbox-template/
-├── Dockerfile                          # Builds the agent container image
-├── flake.nix                           # Nix flake (image, manifests, devShell)
-├── src/
-│   └── agent/
-│       ├── main.py                     # Agent server (HTTP + mounted config/scripts)
-│       ├── requirements.txt            # Python dependencies
-│       └── __init__.py
-├── manifests/
-│   └── base/
-│       ├── agent-config.yaml           # ConfigMap: tool/skill configuration
-│       ├── agent-secrets.yaml          # Secret: API tokens and credentials
-│       ├── agent-scripts.yaml          # ConfigMap: executable scripts
-│       ├── sandbox-template.yaml       # SandboxTemplate with volume mounts
-│       ├── sandbox-warm-pool.yaml      # Pre-warmed pool of 2 sandbox pods
-│       └── sandbox-claim.yaml          # SandboxClaim to request a sandbox
-├── examples/
-│   └── langchain/                      # LangChain coding agent example
-│       ├── Dockerfile
-│       ├── Dockerfile.init
-│       ├── coding_agent.py
-│       ├── download_model.py
-│       ├── requirements.txt
-│       └── manifests/
-│           ├── secret.yaml
-│           ├── sandbox-template.yaml
-│           ├── sandbox-warm-pool.yaml
-│           └── sandbox-claim.yaml
-└── bin/
-    ├── start-cluster                   # Create a k3d cluster
-    ├── apply-manifests                 # Build image, install agent-sandbox, apply manifests
-    ├── claim-sandbox                   # Create a SandboxClaim and wait for ready
-    └── up                              # Run all three in sequence
-```
-
 ## Prerequisites
 
 - [Nix](https://nixos.org/download/) with flakes enabled
