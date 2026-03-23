@@ -9,6 +9,7 @@ spec:
         - name: agent
           image: agent-sandbox:local
           imagePullPolicy: Never
+          command: ["python", "/app/main.py"]
           ports:
             - containerPort: 8080
               name: http
@@ -18,22 +19,9 @@ spec:
               port: 8080
             initialDelaySeconds: 2
             periodSeconds: 5
-          livenessProbe:
-            httpGet:
-              path: /health
-              port: 8080
-            initialDelaySeconds: 5
-            periodSeconds: 10
           volumeMounts:
-            - name: config
-              mountPath: /etc/agent/config.yaml
-              subPath: config.yaml
-              readOnly: true
-            - name: secrets
-              mountPath: /etc/agent/secrets
-              readOnly: true
-            - name: scripts
-              mountPath: /etc/agent/scripts
+            - name: agent-code
+              mountPath: /etc/agent
               readOnly: true
           resources:
             requests:
@@ -43,14 +31,7 @@ spec:
               cpu: "1"
               memory: "1Gi"
       volumes:
-        - name: config
+        - name: agent-code
           configMap:
-            name: agent-config
-        - name: secrets
-          secret:
-            secretName: agent-secrets
-        - name: scripts
-          configMap:
-            name: agent-scripts
-            defaultMode: 0755
+            name: agent-code
   networkPolicyManagement: Managed

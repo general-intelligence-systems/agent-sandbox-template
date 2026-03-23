@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: agent-code
+data:
+  agent.py: |
+    def run(request):
+        """Handle a request. All agents implement this function.
+
+        Args:
+            request: Parsed JSON body from POST /run.
+
+        Returns:
+            dict: JSON-serializable response.
+        """
+        return {"echo": request}

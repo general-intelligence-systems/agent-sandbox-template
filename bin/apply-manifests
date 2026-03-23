@@ -9,15 +9,11 @@ VERSION="${AGENT_SANDBOX_VERSION:-v0.2.1}"
 IMAGE_NAME="${IMAGE_NAME:-agent-sandbox:local}"
 BASE_URL="https://github.com/kubernetes-sigs/agent-sandbox/releases/download/${VERSION}"
 
-# -- Build and load the agent image ------------------------------------
-
 echo "Building agent image '${IMAGE_NAME}'..."
 docker build -t "${IMAGE_NAME}" "${REPO_ROOT}"
 
 echo "Loading image into k3d cluster '${CLUSTER_NAME}'..."
 k3d image import "${IMAGE_NAME}" -c "${CLUSTER_NAME}"
-
-# -- Install upstream agent-sandbox -----------------------------------
 
 echo "Installing agent-sandbox ${VERSION} core components..."
 kubectl apply -f "${BASE_URL}/manifest.yaml"
@@ -36,18 +32,7 @@ kubectl wait --for=condition=Established crds \
 echo "Waiting for agent-sandbox controllers to be ready..."
 kubectl -n agent-sandbox-system wait --for=condition=Available deployment --all --timeout=120s
 
-# -- Apply project manifests ------------------------------------------
+echo "Applying manifests..."
+kubectl apply -f "${REPO_ROOT}/manifests/"
 
-echo "Applying agent ConfigMaps and Secrets..."
-kubectl apply -f "${REPO_ROOT}/manifests/base/agent-config.yaml"
-kubectl apply -f "${REPO_ROOT}/manifests/base/agent-secrets.yaml"
-kubectl apply -f "${REPO_ROOT}/manifests/base/agent-scripts.yaml"
-
-echo "Applying SandboxTemplate..."
-kubectl apply -f "${REPO_ROOT}/manifests/base/sandbox-template.yaml"
-
-echo "Applying SandboxWarmPool..."
-kubectl apply -f "${REPO_ROOT}/manifests/base/sandbox-warm-pool.yaml"
-
-echo "Manifests applied successfully."
-echo "Warm pool is provisioning -- use 'kubectl get swp' to check readiness."
+echo "Done. Use 'kubectl get swp' to check warm pool readiness."

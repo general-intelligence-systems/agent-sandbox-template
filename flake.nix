@@ -14,13 +14,7 @@
           pkgs = import nixpkgs { inherit system; };
         in
         {
-          # -- Docker image -----------------------------------------------
-          #
-          # Builds the agent container image using docker build (impure).
-          #
-          #   nix build .#image --impure
-          #   docker load < result
-          #
+          # nix build .#image --impure && docker load < result
           image = pkgs.runCommand "agent-sandbox-image" {
             __impure = true;
             nativeBuildInputs = [ pkgs.docker ];
@@ -31,13 +25,7 @@
             docker save agent-sandbox:local -o $out
           '';
 
-          # -- Manifests --------------------------------------------------
-          #
-          # Copies all Kubernetes manifests into the Nix store.
-          #
-          #   nix build .#manifests
-          #   ls result/base/
-          #
+          # nix build .#manifests
           manifests = pkgs.stdenvNoCC.mkDerivation {
             pname = "agent-sandbox-manifests";
             version = "0.1.0";
@@ -49,13 +37,7 @@
             '';
           };
 
-          # -- Examples -----------------------------------------------------
-
-          # LangChain coding agent image (impure).
-          #
-          #   nix build .#examples-langchain-image --impure
-          #   docker load < result
-          #
+          # nix build .#examples-langchain-image --impure && docker load < result
           examples-langchain-image = pkgs.runCommand "langchain-coding-agent-image" {
             __impure = true;
             nativeBuildInputs = [ pkgs.docker ];
@@ -70,11 +52,7 @@
               langchain-model-downloader:local -o $out
           '';
 
-          # LangChain manifests.
-          #
-          #   nix build .#examples-langchain-manifests
-          #   ls result/
-          #
+          # nix build .#examples-langchain-manifests
           examples-langchain-manifests = pkgs.stdenvNoCC.mkDerivation {
             pname = "langchain-example-manifests";
             version = "0.1.0";
@@ -88,12 +66,6 @@
         }
       );
 
-      # -- Dev shell ----------------------------------------------------
-      #
-      # Provides kubectl, k3d, k9s and adds bin/ to $PATH.
-      #
-      #   nix develop
-      #
       devShells = forAllSystems (system:
         let
           pkgs = import nixpkgs { inherit system; };
@@ -104,7 +76,6 @@
               kubectl
               k3d
               k9s
-              python312
             ];
             shellHook = ''
               export PATH="$PWD/bin:$PATH"
