@@ -4,65 +4,38 @@
 
 ```bash
 nix develop
+start-cluster       # create a k3d cluster
+apply-manifests     # build image, install agent-sandbox, apply manifests
+claim-sandbox       # claim a sandbox from the warm pool
 ```
 
-Edit your agent logic in `manifests/agent.yaml`. All agents implement a single function:
+Or all at once: `up`
+
+Edit your agent logic in `manifests/agent.yaml`. All agents implement one function:
 
 ```python
 def run(request):
     return {"echo": request}
 ```
 
-The server framework (`src/main.py`) loads this from a mounted ConfigMap and serves it over HTTP.
+To update without rebuilding: `kubectl apply -f manifests/agent.yaml`
 
 ## Deploy
 
 ```bash
-start-cluster       # create a k3d cluster
-apply-manifests     # build image, install agent-sandbox, apply manifests
-claim-sandbox       # claim a sandbox from the warm pool
-```
+# Build the image
+docker build -t agent-sandbox:local .
 
-Or all at once:
+# Push to your registry
+docker tag agent-sandbox:local your-registry/agent-sandbox:latest
+docker push your-registry/agent-sandbox:latest
 
-```bash
-up
-```
-
-To update the agent without rebuilding:
-
-```bash
-kubectl apply -f manifests/agent.yaml
+# Update the image reference in manifests/sandbox-template.yaml, then:
+kubectl apply -f manifests/
 ```
 
 ## Test
 
 ```bash
-# health check
-curl http://<sandbox-fqdn>:8080/health
-
-# call the agent
-curl -X POST http://<sandbox-fqdn>:8080/run \
-  -H 'Content-Type: application/json' \
-  -d '{"message": "hello"}'
-
-# run a shell command
-curl -X POST http://<sandbox-fqdn>:8080/exec \
-  -H 'Content-Type: application/json' \
-  -d '{"command": "uname -a"}'
-```
-
-Inspect resources:
-
-```bash
-kubectl get swp
-kubectl get sandboxclaim
-kubectl get sandbox
-kubectl get pods
-```
-
-Cleanup:
-
-```bash
-k3d cluster delete agent-sandbox
+bin/test
 ```

@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+CLAIM_NAME="${1:-my-sandbox}"
+
+echo "Checking SandboxClaim '${CLAIM_NAME}'..."
+kubectl wait --for=condition=Ready "sandboxclaim/${CLAIM_NAME}" --timeout=60s
+
+POD=$(kubectl get pod -l agents.x-k8s.io/claim-uid="$(kubectl get "sandboxclaim/${CLAIM_NAME}" -o jsonpath='{.metadata.uid}')" -o jsonpath='{.items[0].metadata.name}')
+echo "Pod: ${POD}"
+
+echo ""
+echo "=== Health check ==="
+kubectl exec "${POD}" -- curl -s http://localhost:8080/health
+echo ""
+
+echo ""
+echo "=== POST /run ==="
+kubectl exec "${POD}" -- curl -s -X POST http://localhost:8080/run \
+  -H 'Content-Type: application/json' \
+  -d '{"message": "hello"}'
+echo ""
+
+echo ""
+echo "=== POST /exec ==="
+kubectl exec "${POD}" -- curl -s -X POST http://localhost:8080/exec \
+  -H 'Content-Type: application/json' \
+  -d '{"command": "uname -a"}'
+echo ""
+
+echo ""
+echo "All tests passed."
