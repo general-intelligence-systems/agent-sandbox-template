@@ -124,7 +124,7 @@ kubectl get pods -w          # watch pods
 
 | Output | Description |
 |---|---|
-| `packages.<system>.image` | Agent Docker image (`nix build .#image && docker load < result`) |
+| `packages.<system>.image` | Agent Docker image, impure (`nix build .#image --impure && docker load < result`) |
 | `packages.<system>.manifests` | K8s manifests in the Nix store (`nix build .#manifests`) |
 | `devShells.<system>.default` | Shell with kubectl, k3d, k9s, python3 |
 

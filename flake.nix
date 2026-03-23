@@ -16,30 +16,20 @@
         {
           # -- Docker image -----------------------------------------------
           #
-          # Builds the agent container image via Nix.
+          # Builds the agent container image using docker build (impure).
           #
-          #   nix build .#image
+          #   nix build .#image --impure
           #   docker load < result
           #
-          image = pkgs.dockerTools.buildLayeredImage {
-            name = "agent-sandbox";
-            tag = "local";
-            contents = [
-              pkgs.python312
-              pkgs.coreutils
-              pkgs.curl
-              pkgs.bashInteractive
-            ];
-            config = {
-              WorkingDir = "/app";
-              Cmd = [ "${pkgs.python312}/bin/python" "main.py" ];
-              ExposedPorts."8080/tcp" = {};
-            };
-            extraCommands = ''
-              mkdir -p app
-              cp ${./src/agent/main.py} app/main.py
-            '';
-          };
+          image = pkgs.runCommand "agent-sandbox-image" {
+            __impure = true;
+            nativeBuildInputs = [ pkgs.docker ];
+            src = self;
+          } ''
+            cd $src
+            docker build -t agent-sandbox:local .
+            docker save agent-sandbox:local -o $out
+          '';
 
           # -- Manifests --------------------------------------------------
           #
