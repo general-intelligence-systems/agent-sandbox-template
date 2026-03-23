@@ -9,7 +9,11 @@ apply-manifests     # build image, install agent-sandbox, apply manifests
 claim-sandbox       # claim a sandbox from the warm pool
 ```
 
-Or all at once: `up`
+**Alternatively**
+
+```bash
+nix develop --command up
+```
 
 Edit your agent logic in `manifests/agent.yaml`. All agents implement one function:
 
