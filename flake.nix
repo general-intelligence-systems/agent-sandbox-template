@@ -9,19 +9,45 @@
       forAllSystems = f: nixpkgs.lib.genAttrs supportedSystems f;
     in
     {
-      # -- Manifests derivation -------------------------------------------
-      #
-      # Copies all Kubernetes manifests into the Nix store so they can be
-      # referenced from other flakes or used in CI pipelines.
-      #
-      #   nix build .#manifests
-      #   ls result/base/ result/examples/
-      #
       packages = forAllSystems (system:
         let
           pkgs = import nixpkgs { inherit system; };
         in
         {
+          # -- Docker image -----------------------------------------------
+          #
+          # Builds the agent container image via Nix.
+          #
+          #   nix build .#image
+          #   docker load < result
+          #
+          image = pkgs.dockerTools.buildLayeredImage {
+            name = "agent-sandbox";
+            tag = "local";
+            contents = [
+              pkgs.python312
+              pkgs.coreutils
+              pkgs.curl
+              pkgs.bashInteractive
+            ];
+            config = {
+              WorkingDir = "/app";
+              Cmd = [ "${pkgs.python312}/bin/python" "main.py" ];
+              ExposedPorts."8080/tcp" = {};
+            };
+            extraCommands = ''
+              mkdir -p app
+              cp ${./src/agent/main.py} app/main.py
+            '';
+          };
+
+          # -- Manifests --------------------------------------------------
+          #
+          # Copies all Kubernetes manifests into the Nix store.
+          #
+          #   nix build .#manifests
+          #   ls result/base/
+          #
           manifests = pkgs.stdenvNoCC.mkDerivation {
             pname = "agent-sandbox-manifests";
             version = "0.1.0";
@@ -35,9 +61,9 @@
         }
       );
 
-      # -- Dev shell ------------------------------------------------------
+      # -- Dev shell ----------------------------------------------------
       #
-      # Provides kubectl, k3d, k9s, and adds bin/ to $PATH.
+      # Provides kubectl, k3d, k9s and adds bin/ to $PATH.
       #
       #   nix develop
       #
@@ -51,6 +77,7 @@
               kubectl
               k3d
               k9s
+              python312
             ];
             shellHook = ''
               export PATH="$PWD/bin:$PATH"

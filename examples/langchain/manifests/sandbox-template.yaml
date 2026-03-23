@@ -22,7 +22,7 @@ spec:
     spec:
       initContainers:
         - name: model-downloader
-          image: model-downloader:latest
+          image: langchain-model-downloader:local
           imagePullPolicy: Never
           env:
             - name: HF_TOKEN
@@ -30,6 +30,8 @@ spec:
                 secretKeyRef:
                   name: coding-agent-hf-token
                   key: token
+            - name: MODEL_DIR
+              value: "/models"
           volumeMounts:
             - name: models-cache
               mountPath: /models
@@ -42,7 +44,7 @@ spec:
               memory: "8Gi"
       containers:
         - name: agent
-          image: coding-agent:latest
+          image: langchain-coding-agent:local
           imagePullPolicy: Never
           env:
             - name: HF_TOKEN

@@ -1,0 +1,7 @@
+FROM python:3.12-slim
+
+RUN pip install --no-cache-dir huggingface_hub
+
+COPY download_model.py /app/download_model.py
+
+ENTRYPOINT ["python", "/app/download_model.py"]

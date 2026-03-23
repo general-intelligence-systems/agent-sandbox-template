@@ -1,6 +1,41 @@
 # agent-sandbox-template
 
-A ready-to-use template for running [Kubernetes Agent Sandbox](https://github.com/kubernetes-sigs/agent-sandbox) locally with k3d, using the extensions API (SandboxTemplate, SandboxWarmPool, SandboxClaim).
+A project template for building AI agents on [Kubernetes Agent Sandbox](https://github.com/kubernetes-sigs/agent-sandbox), using the extensions API (SandboxTemplate, SandboxWarmPool, SandboxClaim) and k3d for local development.
+
+## Project Structure
+
+```
+agent-sandbox-template/
+├── Dockerfile                          # Builds the agent container image
+├── flake.nix                           # Nix flake (image, manifests, devShell)
+├── src/
+│   └── agent/
+│       ├── main.py                     # Agent entrypoint (HTTP server + code exec)
+│       ├── requirements.txt            # Python dependencies
+│       └── __init__.py
+├── manifests/
+│   └── base/
+│       ├── sandbox-template.yaml       # SandboxTemplate referencing the agent image
+│       ├── sandbox-warm-pool.yaml      # Pre-warmed pool of 2 sandbox pods
+│       └── sandbox-claim.yaml          # SandboxClaim to request a sandbox
+├── examples/
+│   └── langchain/                      # LangChain coding agent example
+│       ├── Dockerfile
+│       ├── Dockerfile.init
+│       ├── coding_agent.py
+│       ├── download_model.py
+│       ├── requirements.txt
+│       └── manifests/
+│           ├── secret.yaml
+│           ├── sandbox-template.yaml
+│           ├── sandbox-warm-pool.yaml
+│           └── sandbox-claim.yaml
+└── bin/
+    ├── start-cluster                   # Create a k3d cluster
+    ├── apply-manifests                 # Build image, install agent-sandbox, apply manifests
+    ├── claim-sandbox                   # Create a SandboxClaim and wait for ready
+    └── up                              # Run all three in sequence
+```
 
 ## Prerequisites
 
@@ -9,8 +44,6 @@ A ready-to-use template for running [Kubernetes Agent Sandbox](https://github.co
 
 ## Quick Start
 
-Enter the dev shell and run everything in one command:
-
 ```bash
 nix develop
 up
@@ -18,16 +51,13 @@ up
 
 This will:
 
-1. Create a k3d cluster called `agent-sandbox` with 2 agent nodes
-2. Install agent-sandbox v0.2.1 (core + extensions controllers)
-3. Apply the base SandboxTemplate and SandboxWarmPool
-4. Create a SandboxClaim and wait for it to become ready
+1. Create a k3d cluster with 2 agent nodes
+2. Build the agent Docker image and load it into the cluster
+3. Install agent-sandbox v0.2.1 (core + extensions)
+4. Apply the SandboxTemplate and SandboxWarmPool
+5. Create a SandboxClaim and wait for it to become ready
 
-Once complete, you'll see the sandbox name and how to exec into it.
-
-## Step-by-Step Usage
-
-If you prefer to run each step individually:
+## Step-by-Step
 
 ```bash
 nix develop
@@ -35,94 +65,68 @@ nix develop
 # 1. Start the k3d cluster
 start-cluster
 
-# 2. Install agent-sandbox and apply the base template + warm pool
+# 2. Build the image, install agent-sandbox, apply template + warm pool
 apply-manifests
 
-# 3. Claim a sandbox from the warm pool
+# 3. Claim a sandbox
 claim-sandbox
 ```
 
-### Claiming with a custom manifest
+## The Agent
 
-The `claim-sandbox` script accepts an optional path argument:
+The base agent (`src/agent/main.py`) is a minimal HTTP server that runs inside each sandbox:
 
-```bash
-# Claim using the LangChain example instead of the base
-claim-sandbox manifests/examples/langchain/sandbox-claim.yaml
-```
-
-## What Gets Deployed
-
-### Base (`manifests/base/`)
-
-| Resource | Name | Description |
+| Endpoint | Method | Description |
 |---|---|---|
-| SandboxTemplate | `default` | Ubuntu 24.04 container with managed network isolation |
-| SandboxWarmPool | `default-pool` | 2 pre-warmed sandbox pods for instant provisioning |
-| SandboxClaim | `my-sandbox` | Claims a sandbox from the default template |
-
-### LangChain Example (`manifests/examples/langchain/`)
-
-An adaptation of the [upstream LangChain coding agent example](https://github.com/kubernetes-sigs/agent-sandbox/tree/main/examples/langchain), converted to use the extensions API:
-
-| Resource | Name | Description |
-|---|---|---|
-| Secret | `coding-agent-hf-token` | HuggingFace token (replace placeholder before use) |
-| PVC | `models-cache-pvc` | 20Gi shared model cache |
-| SandboxTemplate | `langchain-coding-agent` | Full agent spec with init container for model download |
-| SandboxWarmPool | `langchain-coding-agent-pool` | 2 pre-warmed agent pods |
-| SandboxClaim | `my-coding-agent` | Claim with auto-expiry and delete-on-shutdown |
-
-To use the LangChain example:
-
-```bash
-# Edit the secret with your actual HF token
-$EDITOR manifests/examples/langchain/secret.yaml
-
-# Apply the secret and template
-kubectl apply -f manifests/examples/langchain/secret.yaml
-kubectl apply -f manifests/examples/langchain/sandbox-template.yaml
-kubectl apply -f manifests/examples/langchain/sandbox-warm-pool.yaml
-
-# Claim an agent
-claim-sandbox manifests/examples/langchain/sandbox-claim.yaml
-```
-
-## Inspecting Resources
-
-```bash
-# Check warm pool status
-kubectl get swp
-
-# List sandbox claims
-kubectl get sandboxclaim
-
-# List sandboxes
-kubectl get sandbox
-
-# Watch pods
-kubectl get pods -w
-```
-
-## Configuration
-
-| Environment Variable | Default | Description |
-|---|---|---|
-| `CLUSTER_NAME` | `agent-sandbox` | Name of the k3d cluster |
-| `AGENT_SANDBOX_VERSION` | `v0.2.1` | Upstream agent-sandbox release to install |
+| `/health` | GET | Liveness/readiness probe |
+| `/exec` | POST | Execute a command and return stdout/stderr/exit code |
 
 Example:
 
 ```bash
-CLUSTER_NAME=my-cluster AGENT_SANDBOX_VERSION=v0.2.1 up
+curl -X POST http://<sandbox-fqdn>:8080/exec \
+  -H 'Content-Type: application/json' \
+  -d '{"command": "echo hello world"}'
 ```
+
+Edit `src/agent/main.py` and `requirements.txt` to build your own agent logic. The Dockerfile and manifests will pick up the changes automatically on the next `apply-manifests` run.
+
+## Claiming with a Custom Manifest
+
+```bash
+claim-sandbox examples/langchain/manifests/sandbox-claim.yaml
+```
+
+## Examples
+
+### LangChain Coding Agent
+
+See [`examples/langchain/`](examples/langchain/) for a skeleton that adapts the [upstream LangChain example](https://github.com/kubernetes-sigs/agent-sandbox/tree/main/examples/langchain) to the extensions API. It includes separate Dockerfiles for the agent and model-downloader init container.
+
+## Inspecting Resources
+
+```bash
+kubectl get swp              # warm pool status
+kubectl get sandboxclaim     # claims
+kubectl get sandbox          # sandboxes
+kubectl get pods -w          # watch pods
+```
+
+## Configuration
+
+| Variable | Default | Description |
+|---|---|---|
+| `CLUSTER_NAME` | `agent-sandbox` | k3d cluster name |
+| `AGENT_SANDBOX_VERSION` | `v0.2.1` | Upstream release to install |
+| `IMAGE_NAME` | `agent-sandbox:local` | Docker image tag for the agent |
 
 ## Nix Outputs
 
 | Output | Description |
 |---|---|
-| `packages.<system>.manifests` | All k8s manifests as a Nix derivation (`nix build .#manifests`) |
-| `devShells.<system>.default` | Shell with kubectl, k3d, k9s, and `bin/` on PATH |
+| `packages.<system>.image` | Agent Docker image (`nix build .#image && docker load < result`) |
+| `packages.<system>.manifests` | K8s manifests in the Nix store (`nix build .#manifests`) |
+| `devShells.<system>.default` | Shell with kubectl, k3d, k9s, python3 |
 
 ## Cleanup
 
